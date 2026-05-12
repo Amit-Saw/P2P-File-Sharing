@@ -7,6 +7,8 @@ backend/target/
 .classpath
 .project
 .settings/
-*.md
 backend/nginx.conf
-\n# Frontend dependencies\nFrontend/node_modules/\n
+
+# Frontend dependencies
+Frontend/node_modules/
+
