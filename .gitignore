@@ -7,3 +7,5 @@ backend/target/
 .classpath
 .project
 .settings/
+*.md
+backend/nginx.conf
