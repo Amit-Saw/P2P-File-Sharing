@@ -80,14 +80,14 @@ export default function Upload(){
             <Typography variant="subtitle2" sx={{ mb: 1 }}>Direct download link (copy and share with peers):</Typography>
             <TextField 
               fullWidth
-              value={`${window.location.origin}/download?port=${result.port}`}
+              value={`${window.location.origin}/api/download?port=${result.port}`}
               InputProps={{
                 readOnly: true,
               }}
               onClick={(e) => e.target.select()}
               sx={{ mb: 1 }}
             />
-            <a href={`/download?port=${result.port}`} target="_blank" rel="noreferrer">
+            <a href={`/api/download?port=${result.port}`} target="_blank" rel="noreferrer">
               <Button variant="outlined" size="small">Open Link</Button>
             </a>
           </Box>

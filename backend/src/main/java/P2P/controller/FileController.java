@@ -254,8 +254,12 @@ public class FileController {
           writeResponse(exchange, 503, "{\"error\": \"Failed to connect to file server on port " + port + ": " + e.getMessage() + "\"}");
           return;
         } finally {
-          if (socket != null && !socket.isClosed()) {
-            socket.close();
+          if (socket != null) {
+            try {
+              socket.close();
+            } catch (IOException e) {
+              System.err.println("Error closing socket: " + e.getMessage());
+            }
           }
         }
 

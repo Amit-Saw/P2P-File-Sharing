@@ -4,12 +4,13 @@ import Button from '@mui/material/Button'
 import Box from '@mui/material/Box'
 import TextField from '@mui/material/TextField'
 import Alert from '@mui/material/Alert'
+import { downloadByPort } from '../api'
 
 export default function Download(){
   const [port, setPort] = useState('')
   const [error, setError] = useState(null)
 
-  const handleDownload = () => {
+  const handleDownload = async () => {
     setError(null)
     if(!port || port.trim() === '') {
       setError('Please enter a port number')
@@ -20,7 +21,7 @@ export default function Download(){
       setError('Port must be a number between 1 and 65535')
       return
     }
-    window.location.href = `/download?port=${encodeURIComponent(portNum)}`
+    window.location.href = await downloadByPort(portNum)
   }
 
   const handleKeyPress = (e) => {

@@ -14,7 +14,7 @@ export async function uploadFile(file){
 
 export async function downloadByPort(port){
   // returns a full URL to download via browser
-  return `/download?port=${encodeURIComponent(port)}`
+  return `/api/download?port=${encodeURIComponent(port)}`
 }
 
 export default api

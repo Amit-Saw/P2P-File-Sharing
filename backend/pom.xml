@@ -3,11 +3,11 @@
   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
-  <groupId>P2P</groupId>
-  <artifactId>.</artifactId>
+  <groupId>com.p2p</groupId>
+  <artifactId>p2p-backend</artifactId>
   <version>1.0-SNAPSHOT</version>
 
-  <name>.</name>
+  <name>P2P File Sharing Backend</name>
   <!-- FIXME change it to the project's website -->
   <url>http://www.example.com</url>
 
