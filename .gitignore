@@ -1,0 +1,9 @@
+# Ignore Maven build artifacts and editor/project files
+backend/target/
+*.log
+*.tmp
+*.swp
+.DS_Store
+.classpath
+.project
+.settings/
