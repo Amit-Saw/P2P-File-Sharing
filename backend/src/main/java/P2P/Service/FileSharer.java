@@ -7,24 +7,26 @@ import java.io.OutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 import P2P.utils.UploadUtils;
 
 public class FileSharer {
-  private HashMap<Integer, String> availableFiles;
+  private final ConcurrentHashMap<Integer, String> availableFiles;
+  private static final int MAX_PORT_RETRIES = 100;
+  
   public FileSharer() {
-    this.availableFiles = new HashMap<>();
+    this.availableFiles = new ConcurrentHashMap<>();
   }
 
   public int offerFile(String filePath) {
-    int port;
-    while(true){
-      port = UploadUtils.generateCode();
-      if(!availableFiles.containsKey(port)){
-        availableFiles.put(port, filePath);
+    for (int attempts = 0; attempts < MAX_PORT_RETRIES; attempts++) {
+      int port = UploadUtils.generateCode();
+      if (availableFiles.putIfAbsent(port, filePath) == null) {
         return port;
       }
     }
+    throw new RuntimeException("Failed to allocate port for file after " + MAX_PORT_RETRIES + " attempts");
   }
 
   public void startFileServer(int port) {
@@ -44,6 +46,10 @@ public class FileSharer {
 
     } catch (IOException e) {
       System.err.println("Error starting file server: " + e.getMessage());
+    } finally {
+      // Clean up the port mapping after server closes
+      availableFiles.remove(port);
+      System.out.println("File server for port " + port + " stopped and cleaned up");
     }
   }
 

@@ -197,7 +197,7 @@ public class FileController {
       Map<String, String> params = parseQuery(exchange.getRequestURI().getQuery());
       String portValue = params.get("port");
       if (portValue == null || portValue.isBlank()) {
-        writeResponse(exchange, 400, "Missing port parameter");
+        writeResponse(exchange, 400, "{\"error\": \"Missing port parameter\"}");
         return;
       }
 
@@ -205,51 +205,86 @@ public class FileController {
       try {
         port = Integer.parseInt(portValue);
       } catch (NumberFormatException e) {
-        writeResponse(exchange, 400, "Invalid port parameter");
+        writeResponse(exchange, 400, "{\"error\": \"Invalid port parameter\"}");
         return;
       }
 
-      Path tempFile = Files.createTempFile(Paths.get(downloadDir), "download_", ".tmp");
-      String fileName = "downloaded_file";
-
-      try (Socket socket = new Socket("localhost", port);
-           InputStream inputStream = socket.getInputStream();
-           FileOutputStream fos = new FileOutputStream(tempFile.toFile())) {
-
-        ByteArrayOutputStream headerBuffer = new ByteArrayOutputStream();
-        int b;
-        while ((b = inputStream.read()) != -1) {
-          if (b == '\n') {
-            break;
-          }
-          headerBuffer.write(b);
-        }
-
-        String header = headerBuffer.toString(StandardCharsets.UTF_8);
-        if (header.startsWith("FILENAME:")) {
-          fileName = header.substring("FILENAME:".length()).trim();
-        }
-
-        byte[] buffer = new byte[4096];
-        int bytesRead;
-        while ((bytesRead = inputStream.read(buffer)) != -1) {
-          fos.write(buffer, 0, bytesRead);
-        }
+      if (port < 1 || port > 65535) {
+        writeResponse(exchange, 400, "{\"error\": \"Port must be between 1 and 65535\"}");
+        return;
       }
 
-      exchange.getResponseHeaders().set("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
-      exchange.getResponseHeaders().set("Content-Type", "application/octet-stream");
-      exchange.sendResponseHeaders(200, Files.size(tempFile));
+      Path tempFile = null;
+      String fileName = "downloaded_file";
 
-      try (OutputStream responseBody = exchange.getResponseBody();
-           FileInputStream fis = new FileInputStream(tempFile.toFile())) {
-        byte[] buffer = new byte[4096];
-        int bytesRead;
-        while ((bytesRead = fis.read(buffer)) != -1) {
-          responseBody.write(buffer, 0, bytesRead);
+      try {
+        tempFile = Files.createTempFile(Paths.get(downloadDir), "download_", ".tmp");
+        
+        Socket socket = null;
+        try {
+          socket = new Socket("localhost", port);
+          InputStream inputStream = socket.getInputStream();
+          FileOutputStream fos = new FileOutputStream(tempFile.toFile());
+
+          ByteArrayOutputStream headerBuffer = new ByteArrayOutputStream();
+          int b;
+          int timeoutCount = 0;
+          while ((b = inputStream.read()) != -1 && timeoutCount < 1000) {
+            if (b == '\n') {
+              break;
+            }
+            headerBuffer.write(b);
+            timeoutCount++;
+          }
+
+          String header = headerBuffer.toString(StandardCharsets.UTF_8);
+          if (header.startsWith("FILENAME:")) {
+            fileName = header.substring("FILENAME:".length()).trim();
+          }
+
+          byte[] buffer = new byte[4096];
+          int bytesRead;
+          while ((bytesRead = inputStream.read(buffer)) != -1) {
+            fos.write(buffer, 0, bytesRead);
+          }
+          fos.close();
+          inputStream.close();
+          
+        } catch (IOException e) {
+          writeResponse(exchange, 503, "{\"error\": \"Failed to connect to file server on port " + port + ": " + e.getMessage() + "\"}");
+          return;
+        } finally {
+          if (socket != null && !socket.isClosed()) {
+            socket.close();
+          }
         }
+
+        exchange.getResponseHeaders().set("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+        exchange.getResponseHeaders().set("Content-Type", "application/octet-stream");
+        exchange.sendResponseHeaders(200, Files.size(tempFile));
+
+        try (OutputStream responseBody = exchange.getResponseBody();
+             FileInputStream fis = new FileInputStream(tempFile.toFile())) {
+          byte[] buffer = new byte[4096];
+          int bytesRead;
+          while ((bytesRead = fis.read(buffer)) != -1) {
+            responseBody.write(buffer, 0, bytesRead);
+          }
+        }
+      } catch (Exception e) {
+        System.err.println("Error in DownloadHandler: " + e.getMessage());
+        e.printStackTrace();
+        try {
+          writeResponse(exchange, 500, "{\"error\": \"Internal server error: " + e.getMessage() + "\"}");
+        } catch (Exception ignored) {}
       } finally {
-        Files.deleteIfExists(tempFile);
+        if (tempFile != null) {
+          try {
+            Files.deleteIfExists(tempFile);
+          } catch (IOException e) {
+            System.err.println("Failed to delete temp file: " + e.getMessage());
+          }
+        }
       }
     }
   }
